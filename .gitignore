@@ -1,0 +1,19 @@
+# Build output
+target/
+web/node_modules/
+web/dist/
+src/main/resources/static/
+
+# Secrets (commit .env.example only)
+.env
+*.pem
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Local run artifacts
+*.log
+loadtest/results/tmp/
