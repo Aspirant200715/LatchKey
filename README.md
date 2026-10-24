@@ -12,7 +12,7 @@ Work in progress. Milestones M-1 (environment) and M0 (design freeze) done.
 |---|---|
 | M-1 Environment | done |
 | M0 Design docs | done |
-| M1 Core API | pending |
+| M1 Core API | done |
 | M2 Outbox + relay | pending |
 | M3 Consumer safety | pending |
 | M3f Frontend console | pending |

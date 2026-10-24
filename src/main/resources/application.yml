@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: latchkey
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/orders_db}
+    username: ${DB_USER:latchkey}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      connection-timeout: 3000   # fail fast: DB down must answer 503, not hang
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+logging:
+  structured:
+    format:
+      console: logstash          # one JSON object per line
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}   # internal port: health and metrics are not on the API port
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health,prometheus
+      path-mapping:
+        prometheus: metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        live:
+          include: livenessState
+        ready:
+          include: readinessState,db
+
+latchkey:
+  lock-timeout-ms: ${LOCK_TIMEOUT_MS:2000}
+  idempotency-ttl-hours: ${IDEMPOTENCY_TTL_HOURS:24}
+  rate-limit:
+    capacity: ${RATE_LIMIT_CAPACITY:1000}
+    refill-per-second: ${RATE_LIMIT_REFILL:1000}
+  failpoints: ${FAILPOINTS:}
+  failpoints-enabled: ${FAILPOINTS_ENABLED:false}
+  seed:
+    enabled: ${LATCHKEY_SEED_ENABLED:false}
+    key-a: ${LATCHKEY_SEED_KEY_A:}
+    key-b: ${LATCHKEY_SEED_KEY_B:}
+    skus: ${LATCHKEY_SEED_SKUS:demo-sku}

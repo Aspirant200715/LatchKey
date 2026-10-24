@@ -107,14 +107,16 @@ public class OrderService {
       int code = skuKnown ? 201 : 422;
       ObjectNode body = skuKnown ? createdBody(operationId, orderId) : unknownSkuBody();
 
-      List<UUID> inserted =
+      // RETURNING the stored text matters: jsonb may reorder keys, and the first answer must be
+      // byte-identical to every later replay.
+      List<String> inserted =
           jdbc.query(
               "INSERT INTO idempotency_records (tenant_id, operation_name, idempotency_key,"
                   + " operation_id, payload_hash, status, response_code, response_body, expires_at)"
                   + " VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, now() + make_interval(secs => ?))"
                   + " ON CONFLICT (tenant_id, operation_name, idempotency_key) DO NOTHING"
-                  + " RETURNING operation_id",
-              (rs, i) -> rs.getObject(1, UUID.class),
+                  + " RETURNING response_body::text",
+              (rs, i) -> rs.getString(1),
               tenant.tenantId(),
               OPERATION,
               key,
@@ -130,7 +132,7 @@ public class OrderService {
           insertOrderAndOutbox(tenant, operationId, orderId, request, traceparent);
         }
         failPoints.hit(FailPoints.BEFORE_COMMIT);
-        return new OrderResult(code, body, false, operationId);
+        return new OrderResult(code, readJson(inserted.get(0)), false, operationId);
       }
 
       // Conflict: the winning row is committed (our insert waited for it if it was still open).

@@ -85,7 +85,7 @@ sequenceDiagram
 
 ## 5. Memory budget
 
-Target machine: about 6 GiB free RAM. JVM flags for every app container: `-XX:+UseSerialGC -XX:MaxRAMPercentage=70 -Xss512k`, with `spring.main.lazy-initialization=true`.
+Target machine: about 6 GiB free RAM. JVM flags for every app container: `-XX:+UseSerialGC -XX:MaxRAMPercentage=70 -Xss512k`. Lazy bean initialisation is not used: it can defer the Flyway migration and the seeder past startup, and a service must fail at boot, not on its first request.
 
 | Service | Memory limit |
 |---|---|
