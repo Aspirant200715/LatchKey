@@ -21,7 +21,7 @@ Body: `{ "sku": "string (1-64)", "quantity": integer > 0 and <= 1000 }`.
 | Database unavailable, deadlock, timeout | 503 `SERVICE_UNAVAILABLE` + `Retry-After` | Never served from cache; retry allowed |
 | Key past `expires_at` | treated as a new request | Documented |
 
-Out-of-stock is not decided here. It is decided asynchronously by the consumer and recorded in the ledger. An unknown SKU is a deterministic rejection at the API and is stored as `FAILED_TERMINAL` (replayed on retry).
+Out-of-stock is not decided here. It is decided asynchronously by the consumer and recorded in the ledger. An unknown SKU (not in the `skus` catalog) is a deterministic rejection at the API: 422 `UNKNOWN_SKU`, stored as `FAILED_TERMINAL` and replayed on retry. After a record expires, `GET /v1/operations/{id}` for it returns 404; the order itself is kept.
 
 Error body: `{ "error": { "code": "...", "message": "..." } }`. Codes are stable.
 
@@ -47,6 +47,6 @@ Protected by an admin key, on the management port. Read-only except fail-point t
 
 ## Key rules
 
-- Key: 1-255 printable ASCII characters; a UUID is recommended.
+- Key: 1-255 visible ASCII characters (0x21-0x7E, so no spaces); a UUID is recommended.
 - Never log raw keys, payloads or credentials; log `operation_id`.
 - Payload hash: SHA-256 over the RFC 8785 canonical JSON of the body, prefixed by the operation name; compared in constant time.
