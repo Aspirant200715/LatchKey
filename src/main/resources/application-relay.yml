@@ -1,0 +1,27 @@
+server:
+  port: ${SERVER_PORT:8082}   # unused by the relay; health and metrics are on the management port
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  flyway:
+    locations: classpath:db/migration/orders
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        linger.ms: 5
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+        max.block.ms: 5000     # broker down: fail fast so the row is rescheduled, not stuck
+    admin:
+      fail-fast: false
+      properties:
+        request.timeout.ms: 5000
+        default.api.timeout.ms: 5000

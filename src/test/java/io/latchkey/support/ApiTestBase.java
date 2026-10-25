@@ -29,12 +29,7 @@ public abstract class ApiTestBase {
   public static final String KEY_B = "test-key-tenant-b";
   public static final String BODY = "{\"sku\":\"demo-sku\",\"quantity\":2}";
 
-  // One container for the whole test run (singleton pattern); Ryuk removes it afterwards.
-  static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine");
-
-  static {
-    POSTGRES.start();
-  }
+  static final PostgreSQLContainer<?> POSTGRES = Containers.POSTGRES;
 
   @DynamicPropertySource
   static void properties(DynamicPropertyRegistry registry) {

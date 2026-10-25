@@ -6,14 +6,14 @@ Stack: Java 21, Spring Boot 3, PostgreSQL, Redpanda (Kafka API), Docker Compose.
 
 ## Status
 
-Work in progress. Milestones M-1 (environment) and M0 (design freeze) done.
+Work in progress. Milestones M-1 to M2 done (environment, design freeze, idempotent API, outbox relay).
 
 | Milestone | State |
 |---|---|
 | M-1 Environment | done |
 | M0 Design docs | done |
 | M1 Core API | done |
-| M2 Outbox + relay | pending |
+| M2 Outbox + relay | done |
 | M3 Consumer safety | pending |
 | M3f Frontend console | pending |
 | M4 Telemetry | pending |

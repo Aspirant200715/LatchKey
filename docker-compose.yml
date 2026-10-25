@@ -1,0 +1,110 @@
+# Latchkey local stack. Limits and CPU pinning follow docs/architecture.md section 5.
+# Plain HTTP on localhost only: TLS termination is a production requirement (see docs/guarantees.md).
+name: latchkey
+
+x-app: &app
+  image: latchkey:local
+  restart: unless-stopped
+  environment: &app-env
+    JAVA_OPTS: "-XX:+UseSerialGC -XX:MaxRAMPercentage=70 -Xss512k -XX:+ExitOnOutOfMemoryError"
+    DB_URL: jdbc:postgresql://postgres:5432/orders_db
+    DB_USER: latchkey
+    DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    DB_POOL_SIZE: "10"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: latchkey
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: orders_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    mem_limit: 512m
+    cpuset: "4-7"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U latchkey -d orders_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redpanda:
+    image: redpandadata/redpanda:v26.2.6
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=768M
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+    volumes:
+      - rpdata:/var/lib/redpanda/data
+    ports:
+      - "127.0.0.1:19092:19092"
+    mem_limit: 1g
+    cpuset: "14-15"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster info -X brokers=localhost:9092 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  order-api:
+    <<: *app
+    build: .
+    environment:
+      <<: *app-env
+      SPRING_PROFILES_ACTIVE: api
+      LATCHKEY_SEED_ENABLED: "true"
+      LATCHKEY_SEED_KEY_A: ${LATCHKEY_SEED_KEY_A:?set in .env}
+      LATCHKEY_SEED_KEY_B: ${LATCHKEY_SEED_KEY_B:?set in .env}
+      LATCHKEY_SEED_SKUS: demo-sku,sku-1,sku-2,sku-3
+    ports:
+      - "127.0.0.1:8080:8080"   # API only; the management port 8081 stays inside the network
+    mem_limit: 320m
+    cpuset: "8-13"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8081/health/ready | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    stop_grace_period: 30s
+
+  relay:
+    <<: *app
+    environment:
+      <<: *app-env
+      SPRING_PROFILES_ACTIVE: relay
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+    mem_limit: 256m
+    cpuset: "8-13"
+    depends_on:
+      order-api:        # the api owns the schema migration; the relay waits for it
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8081/health/ready | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    stop_grace_period: 40s
+
+volumes:
+  pgdata:
+  rpdata:
