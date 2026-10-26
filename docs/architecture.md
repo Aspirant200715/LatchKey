@@ -104,3 +104,7 @@ Limits are starting points; real usage is recorded in the report.
 ## 6. Services explained
 
 The full explanation of every service (what it is, why chosen, configuration) is in `services.md`, written alongside the code in M7.
+
+## 7. Load and failure testing
+
+The `loadtest/` directory contains k6 workloads for one hot idempotency key, same-key payload mismatches, and unique-key throughput. Results can be saved as JSON for later analysis. The integration suite also injects failures before API commit, after API commit before response, after relay publish before marking, and after consumer commit before acknowledgement; it verifies that retry or recovery preserves the single-effect guarantees. See [loadtest instructions](../loadtest/README.md).

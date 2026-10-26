@@ -6,7 +6,7 @@ Stack: Java 21, Spring Boot 3, PostgreSQL, Redpanda (Kafka API), Docker Compose.
 
 ## Status
 
-Work in progress. Milestones M-1 to M2 done (environment, design freeze, idempotent API, outbox relay).
+Work in progress. Milestones M-1 through M4 are implemented; M5 load and chaos work is underway.
 
 | Milestone | State |
 |---|---|
@@ -15,9 +15,9 @@ Work in progress. Milestones M-1 to M2 done (environment, design freeze, idempot
 | M1 Core API | done |
 | M2 Outbox + relay | done |
 | M3 Consumer safety | done |
-| M3f Frontend console | in progress |
-| M4 Telemetry | in progress |
-| M5 Load + chaos | pending |
+| M3f Frontend console | done |
+| M4 Telemetry | done |
+| M5 Load + chaos | in progress |
 | M6 Packaging | pending |
 | M7 Evidence | pending |
 
@@ -67,6 +67,7 @@ Remove `--dry-run` to republish the event.
 - [API contract](docs/api.md)
 - [Architecture and sequence diagrams](docs/architecture.md)
 - [Threat model](docs/threat-model.md)
+- [Load and failure testing](loadtest/README.md)
 - [Architecture decision records](adr/)
 
 Full README (what it is, what it is not, quick start, measured results) is written in M7.
