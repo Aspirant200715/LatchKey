@@ -1,5 +1,6 @@
 package io.latchkey.auth;
 
+import org.springframework.context.annotation.Profile;
 import io.latchkey.web.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * Authenticates /v1/** requests. The tenant is derived from the bearer credential only; no header
  * can name a tenant. Applies a per-tenant token-bucket rate limit after authentication.
  */
+@Profile("api")
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 

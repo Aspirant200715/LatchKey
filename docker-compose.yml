@@ -33,6 +33,21 @@ services:
       timeout: 3s
       retries: 20
 
+  # Idempotent bootstrap also runs against existing pgdata volumes, unlike initdb scripts.
+  postgres-bootstrap:
+    image: postgres:17-alpine
+    entrypoint: ["/bin/sh", "/bootstrap.sh"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      INVENTORY_DB_PASSWORD: ${INVENTORY_DB_PASSWORD:?set INVENTORY_DB_PASSWORD in .env}
+    volumes:
+      - ./docker/postgres/bootstrap.sh:/bootstrap.sh:ro
+      - ./docker/postgres/bootstrap.sql:/bootstrap.sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   redpanda:
     image: redpandadata/redpanda:v26.2.6
     restart: unless-stopped
@@ -74,8 +89,8 @@ services:
     mem_limit: 320m
     cpuset: "8-13"
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-bootstrap:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O- http://localhost:8081/health/ready | grep -q UP"]
       interval: 5s
@@ -95,6 +110,34 @@ services:
     depends_on:
       order-api:        # the api owns the schema migration; the relay waits for it
         condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8081/health/ready | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+    stop_grace_period: 40s
+
+  consumer:
+    <<: *app
+    environment:
+      <<: *app-env
+      SPRING_PROFILES_ACTIVE: consumer
+      DB_URL: jdbc:postgresql://postgres:5432/inventory_db
+      DB_USER: latchkey_consumer
+      DB_PASSWORD: ${INVENTORY_DB_PASSWORD:?set INVENTORY_DB_PASSWORD in .env}
+      DB_POOL_SIZE: "5"
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_CONSUMER_CONCURRENCY: "1"
+      INVENTORY_SEED_ENABLED: "true"
+      INVENTORY_SEED_STOCKS: demo-sku:1000,sku-1:1000,sku-2:1000,sku-3:1000
+    mem_limit: 256m
+    cpuset: "8-13"
+    depends_on:
+      postgres-bootstrap:
+        condition: service_completed_successfully
       redpanda:
         condition: service_healthy
     healthcheck:

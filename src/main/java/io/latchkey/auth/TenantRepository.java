@@ -1,5 +1,6 @@
 package io.latchkey.auth;
 
+import org.springframework.context.annotation.Profile;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -10,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /** Resolves a tenant from an API key. Only the SHA-256 of a key is ever stored or compared. */
+@Profile("api")
 @Repository
 public class TenantRepository {
 

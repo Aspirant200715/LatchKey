@@ -1,5 +1,6 @@
 package io.latchkey.orders;
 
+import org.springframework.context.annotation.Profile;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.latchkey.auth.AuthInterceptor;
 import io.latchkey.auth.Tenant;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Profile("api")
 @RestController
 @RequestMapping("/v1")
 public class OrderController {

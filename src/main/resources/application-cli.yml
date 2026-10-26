@@ -1,0 +1,15 @@
+spring:
+  main:
+    web-application-type: none
+  flyway:
+    locations: classpath:db/migration/inventory
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+
+latchkey:
+  admin-key: ${LATCHKEY_ADMIN_KEY:}
+  replay-key: ${LATCHKEY_REPLAY_KEY:}

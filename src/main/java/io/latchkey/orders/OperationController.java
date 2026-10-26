@@ -1,5 +1,6 @@
 package io.latchkey.orders;
 
+import org.springframework.context.annotation.Profile;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Generic recovery endpoint: a client that lost the response can look the operation up. */
+@Profile("api")
 @RestController
 @RequestMapping("/v1")
 public class OperationController {

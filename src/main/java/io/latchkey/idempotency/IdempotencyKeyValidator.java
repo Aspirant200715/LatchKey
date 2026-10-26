@@ -1,10 +1,12 @@
 package io.latchkey.idempotency;
 
+import org.springframework.context.annotation.Profile;
 import io.latchkey.web.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /** Validates the Idempotency-Key header before any database work. */
+@Profile("api")
 @Component
 public class IdempotencyKeyValidator {
 

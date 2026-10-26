@@ -16,6 +16,8 @@ Infrastructure: PostgreSQL (two databases in one instance), Redpanda, and an opt
 
 The producer and the consumer use separate databases. A shared database would let the consumer join the producer's transaction and hide the real distributed boundary.
 
+The Compose consumer uses the `consumer` profile and a dedicated `latchkey_consumer` database role. A small bootstrap service creates or updates that role on every stack start, including when the PostgreSQL volume already exists. Development stock seeding is insert-only, so restarting the stack does not reset stock.
+
 ## 2. Request flow (Mode A)
 
 ```mermaid
@@ -77,7 +79,7 @@ sequenceDiagram
 **Consumer.**
 1. Transient error (timeout, deadlock): do not commit the offset; retry in process with exponential backoff and full jitter (start 100 ms, cap 10 s, at most 5 tries), then pause the partition briefly rather than spin.
 2. Poison message (undecodable, unknown `schema_version`, hash mismatch for a known `event_id`): insert the raw message into `dead_letters`, commit that transaction, then commit the offset. If the process dies between the two, redelivery may create a second DLQ row; this is harmless.
-3. Replay: `latchkey replay --dlq-id N [--dry-run]` requires an admin credential, prints what it would do, writes an audit log line and republishes the original `event_id`, so the inbox still protects against repeated effects.
+3. Replay: the CLI `replay --dlq-id=N [--dry-run]` requires `LATCHKEY_REPLAY_KEY` to match `LATCHKEY_ADMIN_KEY`, prints what it would do, writes an audit log line and republishes the saved key, payload and headers. The original `event_id` is preserved, so the inbox still protects against repeated effects. Export `LATCHKEY_ADMIN_KEY` from `.env` as `LATCHKEY_REPLAY_KEY`, then run `docker compose run --rm --no-deps -e SPRING_PROFILES_ACTIVE=cli -e LATCHKEY_ADMIN_KEY -e LATCHKEY_REPLAY_KEY consumer replay --dlq-id=N --dry-run`.
 
 **Relay.** On publish error: `next_attempt_at = now() + backoff(attempts)`, record `last_error`. Alert on `oldest_unpublished_age`.
 

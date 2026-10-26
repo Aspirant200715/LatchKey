@@ -1,0 +1,37 @@
+server:
+  port: ${SERVER_PORT:8083}
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  flyway:
+    locations: classpath:db/migration/inventory
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:latchkey-inventory-v1}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+    listener:
+      ack-mode: manual_immediate
+      concurrency: ${KAFKA_CONSUMER_CONCURRENCY:1}
+      missing-topics-fatal: false
+
+management:
+  endpoint:
+    health:
+      group:
+        ready:
+          include: readinessState,db,kafka
+
+latchkey:
+  consumer:
+    topic: ${KAFKA_TOPIC:order.created}
+    group-id: ${KAFKA_CONSUMER_GROUP:latchkey-inventory-v1}
+  inventory:
+    seed:
+      enabled: ${INVENTORY_SEED_ENABLED:false}
+      stocks: ${INVENTORY_SEED_STOCKS:}

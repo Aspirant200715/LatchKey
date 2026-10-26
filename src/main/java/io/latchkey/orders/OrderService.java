@@ -1,5 +1,6 @@
 package io.latchkey.orders;
 
+import org.springframework.context.annotation.Profile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,6 +30,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * row commit in ONE transaction, so an IN_PROGRESS row is never visible. A concurrent duplicate
  * blocks on the unique index until the first transaction ends, bounded by lock_timeout.
  */
+@Profile("api")
 @Service
 public class OrderService {
 
