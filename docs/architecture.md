@@ -12,7 +12,7 @@ One Spring Boot image runs in four roles, selected by `SPRING_PROFILES_ACTIVE`.
 | cli | `cli` | `verify` and `replay` commands |
 | mock-payment (optional, M6b) | `payment` | Fake provider with its own idempotency key and a flaky mode |
 
-Infrastructure: PostgreSQL (two databases in one instance), Redpanda, and an opt-in `obs` Compose profile with Prometheus, Grafana and Jaeger.
+Infrastructure: PostgreSQL (two databases in one instance), Redpanda, and an opt-in `obs` Compose profile with Prometheus, Grafana and Jaeger. Prometheus scrapes the API, relay and consumer management ports. Kafka observations and OTLP traces are exported to Jaeger when `OTLP_TRACING_EXPORT_ENABLED=true`; the default core stack keeps trace export disabled.
 
 The producer and the consumer use separate databases. A shared database would let the consumer join the producer's transaction and hide the real distributed boundary.
 

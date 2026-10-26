@@ -1,6 +1,8 @@
 package io.latchkey.relay;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.latchkey.fault.FailPointException;
 import io.latchkey.fault.FailPoints;
@@ -48,6 +50,8 @@ public class RelayWorker implements SmartLifecycle {
   private final KafkaAdmin admin;
   private final FailPoints failPoints;
   private final ObjectMapper mapper;
+  private final Counter acknowledgedRecords;
+  private final Counter failedRecords;
   private final Backoff backoff = new Backoff(1.0, 60.0, new Random());
 
   private final String topic;
@@ -72,6 +76,7 @@ public class RelayWorker implements SmartLifecycle {
       KafkaAdmin admin,
       FailPoints failPoints,
       ObjectMapper mapper,
+      MeterRegistry meters,
       @Value("${latchkey.relay.topic:order.created}") String topic,
       @Value("${latchkey.relay.partitions:6}") int partitions,
       @Value("${latchkey.relay.batch-size:100}") int batchSize,
@@ -85,6 +90,8 @@ public class RelayWorker implements SmartLifecycle {
     this.admin = admin;
     this.failPoints = failPoints;
     this.mapper = mapper;
+    this.acknowledgedRecords = meters.counter("latchkey.relay.records", "result", "acknowledged");
+    this.failedRecords = meters.counter("latchkey.relay.records", "result", "failed");
     this.topic = topic;
     this.partitions = partitions;
     this.batchSize = batchSize;
@@ -182,6 +189,7 @@ public class RelayWorker implements SmartLifecycle {
     for (Pending p : pending) {
       try {
         p.result().get(publishTimeoutMs, TimeUnit.MILLISECONDS);
+        acknowledgedRecords.increment();
       } catch (ExecutionException | TimeoutException e) {
         fail(p.row(), e.getCause() != null ? e.getCause() : e);
         continue;
@@ -203,6 +211,7 @@ public class RelayWorker implements SmartLifecycle {
   }
 
   private void fail(OutboxRow row, Throwable cause) {
+    failedRecords.increment();
     String message = cause.getClass().getSimpleName() + ": " + cause.getMessage();
     try {
       outbox.markFailed(row.eventId(), message, backoff.delaySeconds(row.attempts()));

@@ -55,11 +55,11 @@ class ConsumerIntegrationTest extends ConsumerTestBase {
         .untilAsserted(
             () ->
                 assertThat(
-                        jdbc.queryForObject(
+                        jdbc.queryForList(
                             "SELECT outcome FROM inventory_reservations WHERE event_id = ?",
                             String.class,
                             eventId))
-                    .isEqualTo("REJECTED_OUT_OF_STOCK"));
+                    .containsExactly("REJECTED_OUT_OF_STOCK"));
     assertThat(stock()).isEqualTo(1);
   }
 

@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -30,15 +32,28 @@ public class InventoryEventProcessor {
   private final JdbcTemplate jdbc;
   private final TransactionTemplate transaction;
   private final ObjectMapper mapper;
+  private final MeterRegistry meters;
 
   public InventoryEventProcessor(
-      JdbcTemplate jdbc, TransactionTemplate transaction, ObjectMapper mapper) {
+      JdbcTemplate jdbc, TransactionTemplate transaction, ObjectMapper mapper, MeterRegistry meters) {
     this.jdbc = jdbc;
     this.transaction = transaction;
     this.mapper = mapper;
+    this.meters = meters;
   }
 
   public Outcome process(ConsumerRecord<String, byte[]> record) {
+    Timer.Sample sample = Timer.start(meters);
+    try {
+      Outcome outcome = processTransaction(record);
+      meters.counter("latchkey.consumer.events", "outcome", outcome.name().toLowerCase()).increment();
+      return outcome;
+    } finally {
+      sample.stop(meters.timer("latchkey.consumer.processing"));
+    }
+  }
+
+  private Outcome processTransaction(ConsumerRecord<String, byte[]> record) {
     byte[] raw = record.value() == null ? new byte[0] : record.value();
     UUID eventId = uuidHeader(record, "event_id");
     int schemaVersion = intHeader(record, "schema_version", -1);

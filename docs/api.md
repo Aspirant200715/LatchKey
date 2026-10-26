@@ -34,16 +34,12 @@ Returns `operation_id`, `status` (`IN_PROGRESS|COMPLETED|FAILED_TERMINAL`), `res
 
 - `GET /health/live`: process is up.
 - `GET /health/ready`: database reachable (and broker for relay/consumer).
-- `GET /metrics`: Prometheus format, served on an internal management port and not exposed publicly.
+- `GET /metrics`: Prometheus format, served on an internal management port and not exposed publicly. The scrape includes standard JVM/HTTP metrics plus `latchkey_consumer_events_total`, `latchkey_consumer_processing_seconds`, `latchkey_relay_records_total`, `latchkey_outbox_unpublished`, and `latchkey_outbox_oldest_unpublished_seconds`.
+- With Compose profile `obs`, Prometheus scrapes all three app roles and Grafana provisions a LatchKey dashboard. Set `OTLP_TRACING_EXPORT_ENABLED=true` and `TRACING_SAMPLING_PROBABILITY=1.0` to export sampled traces to Jaeger over OTLP/HTTP.
 
-## Admin endpoints (demo console)
+## Demo console
 
-Protected by an admin key, on the management port. Read-only except fail-point toggles, which work only when `FAILPOINTS_ENABLED=true`.
-
-- `GET /admin/overview`: counts for orders, outbox (unpublished, oldest age), inbox, ledger, dead letters, stock.
-- `POST /admin/verify`: runs the verifier and returns per-check pass/fail.
-- `GET /admin/pipeline/{operation_id}`: order, outbox row, inbox row, ledger row for one operation.
-- `POST /admin/failpoints`: enable or clear a named fail point.
+The local console is served at `/` by the API profile. It can create an order with `POST /v1/orders` and recover its state with `GET /v1/operations/{operation_id}`. It asks for a tenant API key and keeps it in page memory only. Administrative overview, verification, pipeline, and fail-point endpoints remain planned; they are not implemented yet.
 
 ## Key rules
 

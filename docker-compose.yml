@@ -11,6 +11,9 @@ x-app: &app
     DB_USER: latchkey
     DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     DB_POOL_SIZE: "10"
+    OTLP_TRACING_EXPORT_ENABLED: ${OTLP_TRACING_EXPORT_ENABLED:-false}
+    TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-0.1}
+    OTLP_TRACING_ENDPOINT: ${OTLP_TRACING_ENDPOINT:-http://jaeger:4318/v1/traces}
 
 services:
   postgres:
@@ -80,6 +83,8 @@ services:
     environment:
       <<: *app-env
       SPRING_PROFILES_ACTIVE: api
+      LATCHKEY_ROLE: api
+      OTEL_SERVICE_NAME: latchkey-api
       LATCHKEY_SEED_ENABLED: "true"
       LATCHKEY_SEED_KEY_A: ${LATCHKEY_SEED_KEY_A:?set in .env}
       LATCHKEY_SEED_KEY_B: ${LATCHKEY_SEED_KEY_B:?set in .env}
@@ -104,6 +109,8 @@ services:
     environment:
       <<: *app-env
       SPRING_PROFILES_ACTIVE: relay
+      LATCHKEY_ROLE: relay
+      OTEL_SERVICE_NAME: latchkey-relay
       KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
     mem_limit: 256m
     cpuset: "8-13"
@@ -125,6 +132,8 @@ services:
     environment:
       <<: *app-env
       SPRING_PROFILES_ACTIVE: consumer
+      LATCHKEY_ROLE: consumer
+      OTEL_SERVICE_NAME: latchkey-consumer
       DB_URL: jdbc:postgresql://postgres:5432/inventory_db
       DB_USER: latchkey_consumer
       DB_PASSWORD: ${INVENTORY_DB_PASSWORD:?set INVENTORY_DB_PASSWORD in .env}
@@ -148,6 +157,60 @@ services:
       start_period: 20s
     stop_grace_period: 40s
 
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.22.0
+    profiles: ["obs"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16686:16686"
+    mem_limit: 256m
+    cpuset: "4-7"
+
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    profiles: ["obs"]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    mem_limit: 256m
+    cpuset: "4-7"
+    depends_on:
+      order-api:
+        condition: service_healthy
+      relay:
+        condition: service_healthy
+      consumer:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    profiles: ["obs"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    mem_limit: 256m
+    cpuset: "4-7"
+    depends_on:
+      - prometheus
+
 volumes:
   pgdata:
   rpdata:
+  prometheus_data:
+  grafana_data:

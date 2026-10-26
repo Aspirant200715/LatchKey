@@ -2,6 +2,8 @@ package io.latchkey.relay;
 
 import java.util.Comparator;
 import java.util.List;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.UUID;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,8 +20,28 @@ public class OutboxRepository {
 
   private final JdbcTemplate jdbc;
 
-  public OutboxRepository(JdbcTemplate jdbc) {
+  public OutboxRepository(JdbcTemplate jdbc, MeterRegistry meters) {
     this.jdbc = jdbc;
+    Gauge.builder("latchkey.outbox.unpublished", this, OutboxRepository::unpublishedCount)
+        .description("Number of outbox events that have not been published")
+        .register(meters);
+    Gauge.builder("latchkey.outbox.oldest_unpublished_seconds", this, OutboxRepository::oldestAgeSeconds)
+        .description("Age of the oldest unpublished outbox event in seconds")
+        .register(meters);
+  }
+
+  private double unpublishedCount() {
+    Long count = jdbc.queryForObject(
+        "SELECT count(*) FROM outbox_events WHERE published_at IS NULL", Long.class);
+    return count == null ? 0 : count;
+  }
+
+  private double oldestAgeSeconds() {
+    Double age = jdbc.queryForObject(
+        "SELECT EXTRACT(EPOCH FROM (now() - min(created_at)))"
+            + " FROM outbox_events WHERE published_at IS NULL",
+        Double.class);
+    return age == null ? 0 : Math.max(0, age);
   }
 
   /** Claims up to {@code limit} due rows. Rows with an expired lease become claimable again. */

@@ -2,7 +2,6 @@
 target/
 web/node_modules/
 web/dist/
-src/main/resources/static/
 
 # Secrets (commit .env.example only)
 .env

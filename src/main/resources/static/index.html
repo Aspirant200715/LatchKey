@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>LatchKey · Order Console</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #142522;
+      --muted: #62736f;
+      --line: #dce6e1;
+      --surface: #ffffff;
+      --page: #f1f6f3;
+      --green: #13745d;
+      --green-dark: #0b5b49;
+      --mint: #dff4e9;
+      --amber: #fff1d5;
+      --red: #a43937;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); }
+    .topbar { border-bottom: 1px solid var(--line); background: rgba(255,255,255,.88); }
+    .topbar-inner { max-width: 1080px; margin: auto; padding: 18px 24px; display: flex; align-items: center; gap: 12px; }
+    .mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; color: white; background: var(--green); font-weight: 800; }
+    .brand { font-weight: 750; letter-spacing: -.03em; }
+    .tag { margin-left: auto; color: var(--muted); font-size: 12px; border: 1px solid var(--line); border-radius: 99px; padding: 6px 10px; }
+    main { max-width: 1080px; padding: 42px 24px 72px; margin: auto; }
+    .intro { max-width: 650px; margin: 0 0 28px; }
+    .eyebrow { margin: 0 0 10px; color: var(--green); text-transform: uppercase; letter-spacing: .12em; font-size: 11px; font-weight: 800; }
+    h1 { margin: 0; font-size: clamp(30px, 5vw, 46px); line-height: 1.04; letter-spacing: -.055em; }
+    .intro p:last-child { color: var(--muted); line-height: 1.6; margin: 14px 0 0; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); gap: 18px; align-items: start; }
+    .card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 8px 24px rgba(28,65,52,.045); }
+    .card-head { border-bottom: 1px solid #edf2ef; padding: 20px 22px 16px; }
+    h2 { margin: 0; font-size: 17px; letter-spacing: -.025em; }
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
+    .card-body { padding: 20px 22px 22px; }
+    label { display: block; font-size: 12px; color: #435651; font-weight: 700; margin: 0 0 7px; }
+    input { width: 100%; min-height: 42px; border: 1px solid #cddbd4; border-radius: 9px; padding: 10px 12px; color: var(--ink); background: #fff; font: inherit; outline: none; }
+    input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(19,116,93,.12); }
+    input::placeholder { color: #9aa9a3; }
+    .field { margin-bottom: 16px; }
+    .field-row { display: grid; grid-template-columns: 1fr 130px; gap: 12px; }
+    .key-row { display: flex; gap: 8px; }
+    .key-row input { min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    button { border: 0; border-radius: 9px; min-height: 42px; padding: 0 15px; background: var(--green); color: #fff; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; transition: background .15s, transform .15s; }
+    button:hover { background: var(--green-dark); }
+    button:active { transform: translateY(1px); }
+    button:disabled { cursor: wait; opacity: .65; }
+    button.secondary { color: var(--green-dark); background: var(--mint); white-space: nowrap; }
+    button.secondary:hover { background: #ccebdc; }
+    button.ghost { color: var(--muted); background: transparent; border: 1px solid var(--line); }
+    button.ghost:hover { background: #f5f9f6; }
+    .actions { display: flex; gap: 9px; align-items: center; margin-top: 20px; }
+    .actions button:first-child { flex: 1; }
+    .response { margin-top: 16px; border-radius: 10px; border: 1px solid var(--line); background: #f7faf8; overflow: hidden; }
+    .response[hidden] { display: none; }
+    .response-title { display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-size: 12px; font-weight: 750; border-bottom: 1px solid var(--line); }
+    .response-title.ok { color: var(--green-dark); background: var(--mint); }
+    .response-title.wait { color: #805711; background: var(--amber); }
+    .response-title.bad { color: var(--red); background: #fde9e7; }
+    pre { margin: 0; padding: 12px; max-height: 220px; overflow: auto; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #33453f; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .security-note { display: flex; gap: 10px; margin-top: 18px; border: 1px solid var(--line); background: #f7faf8; border-radius: 10px; padding: 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .security-note span:first-child { font-size: 15px; }
+    .operation { margin-top: 18px; }
+    .operation .field { margin-bottom: 12px; }
+    .operation button { width: 100%; }
+    .statusline { min-height: 20px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+    footer { color: var(--muted); font-size: 11px; margin: 22px 0 0; }
+    @media (max-width: 760px) {
+      main { padding-top: 30px; }
+      .grid { grid-template-columns: 1fr; }
+      .tag { font-size: 10px; }
+    }
+    @media (max-width: 420px) {
+      .topbar-inner { padding: 14px 16px; }
+      main { padding: 28px 16px 50px; }
+      .card-head, .card-body { padding-left: 16px; padding-right: 16px; }
+      .field-row { grid-template-columns: 1fr 92px; }
+      .tag { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="mark" aria-hidden="true">L</div>
+      <div class="brand">LatchKey</div>
+      <div class="tag">LOCAL DEMO CONSOLE</div>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">Orders · Idempotency · Recovery</p>
+      <h1>Try the order flow.</h1>
+      <p>Create an order with an idempotency key, then look up its operation to see what the API recorded. The inventory reservation runs asynchronously.</p>
+    </section>
+
+    <div class="grid">
+      <section class="card" aria-labelledby="create-heading">
+        <div class="card-head">
+          <h2 id="create-heading">Create an order</h2>
+          <p class="hint">Repeat the request with the same key to safely retry it.</p>
+        </div>
+        <form class="card-body" id="order-form">
+          <div class="field">
+            <label for="api-key">Tenant API key</label>
+            <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste a seeded API key" required>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="sku">SKU</label>
+              <input id="sku" maxlength="64" value="demo-sku" required>
+            </div>
+            <div class="field">
+              <label for="quantity">Quantity</label>
+              <input id="quantity" type="number" min="1" max="1000" value="2" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="idem-key">Idempotency key</label>
+            <div class="key-row">
+              <input id="idem-key" spellcheck="false" required aria-describedby="key-hint">
+              <button class="secondary" id="new-key" type="button">New key</button>
+            </div>
+            <p class="hint" id="key-hint">Keep this key when retrying the same order.</p>
+          </div>
+          <div class="actions">
+            <button id="submit-order" type="submit">Submit order</button>
+            <button class="ghost" id="retry-order" type="button" title="Repeat the last request with the same key">Retry</button>
+          </div>
+          <div class="response" id="create-response" role="status" aria-live="polite" hidden>
+            <div class="response-title" id="create-title"></div>
+            <pre id="create-json"></pre>
+          </div>
+          <div class="security-note"><span aria-hidden="true">◈</span><span>Your API key stays in this page’s memory and is sent only to this API. Refreshing clears it.</span></div>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="operation-heading">
+        <div class="card-head">
+          <h2 id="operation-heading">Recover an operation</h2>
+          <p class="hint">Look up an operation ID if you lost the create response.</p>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label for="operation-id">Operation ID</label>
+            <input id="operation-id" spellcheck="false" placeholder="UUID from the order response">
+          </div>
+          <button id="lookup-operation" type="button">Look up operation</button>
+          <p class="statusline" id="lookup-status" aria-live="polite"></p>
+          <div class="response" id="lookup-response" role="status" aria-live="polite" hidden>
+            <div class="response-title" id="lookup-title"></div>
+            <pre id="lookup-json"></pre>
+          </div>
+          <footer>Operation records are tenant-scoped. Use the same API key that created the order.</footer>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const form = $('order-form');
+      const createButton = $('submit-order');
+      const retryButton = $('retry-order');
+      const createResponse = $('create-response');
+      let lastRequest = null;
+
+      function newIdempotencyKey() {
+        $('idem-key').value = crypto.randomUUID();
+      }
+
+      function showResult(prefix, response, body) {
+        const box = $(`${prefix}-response`);
+        const title = $(`${prefix}-title`);
+        const output = $(`${prefix}-json`);
+        box.hidden = false;
+        title.className = `response-title ${response.ok ? 'ok' : response.status === 409 ? 'wait' : 'bad'}`;
+        title.textContent = `${response.status} · ${response.statusText}`;
+        output.textContent = JSON.stringify(body, null, 2);
+      }
+
+      async function jsonResponse(response) {
+        try { return await response.json(); }
+        catch { return { error: { message: 'The server returned a non-JSON response.' } }; }
+      }
+
+      async function sendOrder() {
+        if (!lastRequest) return;
+        createButton.disabled = true;
+        retryButton.disabled = true;
+        createResponse.hidden = true;
+        try {
+          const response = await fetch('/v1/orders', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lastRequest.apiKey}`,
+              'Content-Type': 'application/json',
+              'Idempotency-Key': lastRequest.idempotencyKey
+            },
+            body: JSON.stringify(lastRequest.body)
+          });
+          const body = await jsonResponse(response);
+          showResult('create', response, body);
+          if (body.operation_id) $('operation-id').value = body.operation_id;
+        } catch {
+          const failed = { ok: false, status: 'ERR', statusText: 'Network error' };
+          showResult('create', failed, { error: { message: 'Could not reach the API. Retry with the same idempotency key.' } });
+        } finally {
+          createButton.disabled = false;
+          retryButton.disabled = false;
+        }
+      }
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        lastRequest = {
+          apiKey: $('api-key').value.trim(),
+          idempotencyKey: $('idem-key').value.trim(),
+          body: { sku: $('sku').value.trim(), quantity: Number($('quantity').value) }
+        };
+        sendOrder();
+      });
+
+      $('new-key').addEventListener('click', newIdempotencyKey);
+      retryButton.addEventListener('click', sendOrder);
+      $('lookup-operation').addEventListener('click', async () => {
+        const apiKey = $('api-key').value.trim();
+        const operationId = $('operation-id').value.trim();
+        const status = $('lookup-status');
+        const button = $('lookup-operation');
+        if (!apiKey || !operationId) {
+          status.textContent = 'Enter the tenant API key and operation ID.';
+          $('api-key').focus();
+          return;
+        }
+        button.disabled = true;
+        status.textContent = 'Checking operation…';
+        $('lookup-response').hidden = true;
+        try {
+          const response = await fetch(`/v1/operations/${encodeURIComponent(operationId)}`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+          });
+          const body = await jsonResponse(response);
+          showResult('lookup', response, body);
+          status.textContent = response.ok ? `Operation status: ${body.status || 'unknown'}` : 'Lookup failed.';
+        } catch {
+          status.textContent = 'Could not reach the API. Check that the stack is running.';
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      newIdempotencyKey();
+    })();
+  </script>
+</body>
+</html>

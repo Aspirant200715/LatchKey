@@ -14,9 +14,9 @@ Work in progress. Milestones M-1 to M2 done (environment, design freeze, idempot
 | M0 Design docs | done |
 | M1 Core API | done |
 | M2 Outbox + relay | done |
-| M3 Consumer safety | in progress |
-| M3f Frontend console | pending |
-| M4 Telemetry | pending |
+| M3 Consumer safety | done |
+| M3f Frontend console | in progress |
+| M4 Telemetry | in progress |
 | M5 Load + chaos | pending |
 | M6 Packaging | pending |
 | M7 Evidence | pending |
@@ -31,6 +31,17 @@ docker compose up --build -d
 docker compose ps
 docker compose logs -f order-api relay consumer
 ```
+
+Enable the optional Prometheus, Grafana and Jaeger tools with:
+
+```sh
+OTLP_TRACING_EXPORT_ENABLED=true TRACING_SAMPLING_PROBABILITY=1.0 \
+  docker compose --profile obs up --build -d
+```
+
+Open Prometheus at [http://localhost:9090](http://localhost:9090), Grafana at [http://localhost:3000](http://localhost:3000) (user `admin`, password from `.env`), and Jaeger at [http://localhost:16686](http://localhost:16686). Grafana provisions the LatchKey overview dashboard automatically.
+
+Open [http://localhost:8080](http://localhost:8080) for the local order console. Use one of the seeded tenant API keys from `.env` (`LATCHKEY_SEED_KEY_A` or `LATCHKEY_SEED_KEY_B`) to create an order and look up its operation status.
 
 Stop the stack with `docker compose down`; `docker compose down -v` also deletes the local database and broker data.
 
