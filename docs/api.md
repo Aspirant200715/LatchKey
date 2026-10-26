@@ -30,6 +30,10 @@ Error body: `{ "error": { "code": "...", "message": "..." } }`. Codes are stable
 Tenant-scoped. Another tenant's id returns 404 (not 403, to avoid confirming existence).
 Returns `operation_id`, `status` (`IN_PROGRESS|COMPLETED|FAILED_TERMINAL`), `response_code`, `response_body`, `created_at`.
 
+## GET /v1/operations/{operation_id}/inventory
+
+Tenant-scoped end-to-end demo status. Returns whether the outbox event is waiting to publish or published, and whether inventory is still processing, reserved, rejected for insufficient stock, or unavailable. It reads the operation and outbox in `orders_db` and asks the private consumer service for its reservation ledger result. A not-yet-seen event is a normal pending state; the console polls briefly and can be refreshed later.
+
 ## Health and metrics
 
 - `GET /health/live`: process is up.
@@ -39,7 +43,7 @@ Returns `operation_id`, `status` (`IN_PROGRESS|COMPLETED|FAILED_TERMINAL`), `res
 
 ## Demo console
 
-The local console is served at `/` by the API profile. It can create an order with `POST /v1/orders` and recover its state with `GET /v1/operations/{operation_id}`. It asks for a tenant API key and keeps it in page memory only. Administrative overview, verification, pipeline, and fail-point endpoints remain planned; they are not implemented yet.
+The local console is served at `/` by the API profile. It can create an order, retry with the same idempotency key, recover the stored operation, and track event publication and inventory reservation. It asks for a tenant API key and keeps it in page memory only. Administrative overview, verification, and fail-point endpoints remain planned; they are not implemented yet.
 
 ## Key rules
 

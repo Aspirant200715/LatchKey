@@ -10,3 +10,7 @@ spring:
     timeout-per-shutdown-phase: 20s
   flyway:
     locations: classpath:db/migration/orders
+
+latchkey:
+  consumer-status:
+    base-url: ${CONSUMER_STATUS_URL:http://localhost:8083}

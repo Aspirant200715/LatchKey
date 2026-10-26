@@ -6,7 +6,7 @@ Stack: Java 21, Spring Boot 3, PostgreSQL, Redpanda (Kafka API), Docker Compose.
 
 ## Status
 
-Work in progress. Milestones M-1 through M4 are implemented; M5 load and chaos work is underway.
+Work in progress. Core API, relay, consumer, and telemetry are implemented. The user-facing demo flow and M5 load evidence are being completed.
 
 | Milestone | State |
 |---|---|
@@ -15,7 +15,7 @@ Work in progress. Milestones M-1 through M4 are implemented; M5 load and chaos w
 | M1 Core API | done |
 | M2 Outbox + relay | done |
 | M3 Consumer safety | done |
-| M3f Frontend console | done |
+| M3f Frontend console | in progress |
 | M4 Telemetry | done |
 | M5 Load + chaos | in progress |
 | M6 Packaging | pending |
@@ -41,9 +41,9 @@ OTLP_TRACING_EXPORT_ENABLED=true TRACING_SAMPLING_PROBABILITY=1.0 \
 
 Open Prometheus at [http://localhost:9090](http://localhost:9090), Grafana at [http://localhost:3000](http://localhost:3000) (user `admin`, password from `.env`), and Jaeger at [http://localhost:16686](http://localhost:16686). Grafana provisions the LatchKey overview dashboard automatically.
 
-Open [http://localhost:8080](http://localhost:8080) for the local order console. Use one of the seeded tenant API keys from `.env` (`LATCHKEY_SEED_KEY_A` or `LATCHKEY_SEED_KEY_B`) to create an order and look up its operation status.
+Open [http://localhost:8080](http://localhost:8080) for the local order console. Use one of the seeded tenant API keys from `.env` (`LATCHKEY_SEED_KEY_A` or `LATCHKEY_SEED_KEY_B`) to create an order and look up its operation and inventory status. See [Environment and keys](docs/environment.md#keys-and-passwords) for which credentials are needed.
 
-For a quick demo, submit an order, press **Retry** and confirm the saved-response replay marker, then change the quantity and submit again with the same key to see the `422 IDEMPOTENCY_KEY_REUSED` result. Use the operation ID to retrieve the saved API result. `COMPLETED` describes the committed API request; inventory reservation is asynchronous and is observed through the consumer metrics/logs.
+For a quick demo, submit an order and follow its event and inventory status, press **Retry** and confirm the saved-response replay marker, then change the quantity and submit again with the same key to see the `422 IDEMPOTENCY_KEY_REUSED` result. Use the operation ID to retrieve the saved API result. `COMPLETED` describes the committed API request; inventory reservation is asynchronous and shown separately.
 
 Stop the stack with `docker compose down`; `docker compose down -v` also deletes the local database and broker data.
 

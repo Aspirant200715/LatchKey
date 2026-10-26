@@ -156,6 +156,10 @@
             <div class="response-title" id="lookup-title"></div>
             <pre id="lookup-json"></pre>
           </div>
+          <div class="response" id="inventory-response" role="status" aria-live="polite" hidden>
+            <div class="response-title" id="inventory-title"></div>
+            <pre id="inventory-json"></pre>
+          </div>
           <footer>Operation records are tenant-scoped. Use the same API key that created the order. <code>COMPLETED</code> means the order request was committed; inventory processing is asynchronous.</footer>
         </div>
       </section>
@@ -195,6 +199,44 @@
         catch { return { error: { message: 'The server returned a non-JSON response.' } }; }
       }
 
+      async function trackInventory(apiKey, operationId) {
+        const box = $('inventory-response');
+        const title = $('inventory-title');
+        const output = $('inventory-json');
+        box.hidden = false;
+
+        for (let attempt = 0; attempt < 12; attempt++) {
+          title.className = 'response-title wait';
+          title.textContent = attempt === 0 ? 'Checking event and inventory…' : 'Waiting for the consumer…';
+          try {
+            const response = await fetch(`/v1/operations/${encodeURIComponent(operationId)}/inventory`, {
+              headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            const body = await jsonResponse(response);
+            if (!response.ok) {
+              title.className = 'response-title bad';
+              title.textContent = `Inventory lookup failed · ${response.status}`;
+              output.textContent = JSON.stringify(body, null, 2);
+              return;
+            }
+
+            const inventory = body.inventory_status;
+            const terminal = ['RESERVED', 'REJECTED_OUT_OF_STOCK', 'NOT_APPLICABLE', 'CONSUMER_UNAVAILABLE'].includes(inventory);
+            title.className = `response-title ${inventory === 'RESERVED' ? 'ok' : terminal ? 'bad' : 'wait'}`;
+            title.textContent = `Event ${body.event_status.replaceAll('_', ' ').toLowerCase()} · Inventory ${inventory.replaceAll('_', ' ').toLowerCase()}`;
+            output.textContent = JSON.stringify(body, null, 2);
+            if (terminal) return;
+          } catch {
+            title.className = 'response-title bad';
+            title.textContent = 'Could not reach the API to check inventory.';
+            return;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        title.className = 'response-title wait';
+        title.textContent = 'Still processing · check again in a moment';
+      }
+
       async function sendOrder() {
         if (!lastRequest) return;
         createButton.disabled = true;
@@ -212,7 +254,11 @@
           });
           const body = await jsonResponse(response);
           showResult('create', response, body);
-          if (body.operation_id) $('operation-id').value = body.operation_id;
+          if (body.operation_id) {
+            $('operation-id').value = body.operation_id;
+            $('lookup-status').textContent = 'Order saved. Tracking event publication and inventory…';
+            void trackInventory(lastRequest.apiKey, body.operation_id);
+          }
         } catch {
           const failed = { ok: false, status: 'ERR', statusText: 'Network error' };
           showResult('create', failed, { error: { message: 'Could not reach the API. Retry with the same idempotency key.' } });
@@ -254,7 +300,8 @@
           });
           const body = await jsonResponse(response);
           showResult('lookup', response, body);
-          status.textContent = response.ok ? `Operation status: ${body.status || 'unknown'}` : 'Lookup failed.';
+          status.textContent = response.ok ? `API operation status: ${body.status || 'unknown'}. Checking inventory…` : 'Lookup failed.';
+          if (response.ok) await trackInventory(apiKey, operationId);
         } catch {
           status.textContent = 'Could not reach the API. Check that the stack is running.';
         } finally {
