@@ -43,6 +43,8 @@ Open Prometheus at [http://localhost:9090](http://localhost:9090), Grafana at [h
 
 Open [http://localhost:8080](http://localhost:8080) for the local order console. Use one of the seeded tenant API keys from `.env` (`LATCHKEY_SEED_KEY_A` or `LATCHKEY_SEED_KEY_B`) to create an order and look up its operation status.
 
+For a quick demo, submit an order, press **Retry** and confirm the saved-response replay marker, then change the quantity and submit again with the same key to see the `422 IDEMPOTENCY_KEY_REUSED` result. Use the operation ID to retrieve the saved API result. `COMPLETED` describes the committed API request; inventory reservation is asynchronous and is observed through the consumer metrics/logs.
+
 Stop the stack with `docker compose down`; `docker compose down -v` also deletes the local database and broker data.
 
 To preview a dead letter replay, load the local admin key into the shell and pass it through the one-off CLI container without putting the value in the command line:

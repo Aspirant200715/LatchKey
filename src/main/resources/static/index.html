@@ -96,14 +96,14 @@
     <section class="intro">
       <p class="eyebrow">Orders · Idempotency · Recovery</p>
       <h1>Try the order flow.</h1>
-      <p>Create an order with an idempotency key, then look up its operation to see what the API recorded. The inventory reservation runs asynchronously.</p>
+      <p>Create an order with an idempotency key, retry it safely, then look up the operation the API recorded. The status here is the durable API result; inventory reservation runs asynchronously in the consumer.</p>
     </section>
 
     <div class="grid">
       <section class="card" aria-labelledby="create-heading">
         <div class="card-head">
           <h2 id="create-heading">Create an order</h2>
-          <p class="hint">Repeat the request with the same key to safely retry it.</p>
+          <p class="hint">Repeat the same request with the same key. A replay is marked in the result so you can see that the API returned its saved response.</p>
         </div>
         <form class="card-body" id="order-form">
           <div class="field">
@@ -156,10 +156,15 @@
             <div class="response-title" id="lookup-title"></div>
             <pre id="lookup-json"></pre>
           </div>
-          <footer>Operation records are tenant-scoped. Use the same API key that created the order.</footer>
+          <footer>Operation records are tenant-scoped. Use the same API key that created the order. <code>COMPLETED</code> means the order request was committed; inventory processing is asynchronous.</footer>
         </div>
       </section>
     </div>
+
+    <section class="security-note" aria-label="Demo steps">
+      <span aria-hidden="true">✓</span>
+      <span><strong>Try the idempotency flow:</strong> submit an order, click <em>Retry</em> and confirm the saved-response marker, then change the quantity and submit with the same key to see the 422 key-reuse error. Use the operation ID to recover the stored result.</span>
+    </section>
   </main>
   <script>
     (() => {
@@ -180,7 +185,8 @@
         const output = $(`${prefix}-json`);
         box.hidden = false;
         title.className = `response-title ${response.ok ? 'ok' : response.status === 409 ? 'wait' : 'bad'}`;
-        title.textContent = `${response.status} · ${response.statusText}`;
+        const replayed = response.headers?.get('Idempotent-Replayed') === 'true';
+        title.textContent = `${response.status} · ${response.statusText}${replayed ? ' · saved response replayed' : ''}`;
         output.textContent = JSON.stringify(body, null, 2);
       }
 
